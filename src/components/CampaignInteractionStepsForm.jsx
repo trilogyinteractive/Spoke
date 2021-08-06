@@ -428,6 +428,18 @@ export default class CampaignInteractionStepsForm extends React.Component {
                 >
                   + Add a response
                 </Button>
+                <Button
+                  onClick={() => {
+                    this.props.onShowPreviewDialog(interactionStep);
+                  }}
+                  style={{
+                    marginBottom: "10px",
+                    marginLeft: "10px"
+                  }}
+                  variant="outlined"
+                >
+                  Preview
+                </Button>
               </div>
             )}
           {this.state.displayAllSteps &&
@@ -488,6 +500,7 @@ CampaignInteractionStepsForm.propTypes = {
   formValues: type.object,
   onChange: type.func,
   ensureComplete: type.bool,
+  onShowPreviewDialog: type.func,
   onSubmit: type.func,
   customFields: type.array,
   saveLabel: type.string,

@@ -6,6 +6,11 @@ import { Link } from "react-router";
 import Button from "@material-ui/core/Button";
 import ButtonGroup from "@material-ui/core/ButtonGroup";
 
+import CloseIcon from "@material-ui/icons/Close";
+import Dialog from "@material-ui/core/Dialog";
+import DialogContent from "@material-ui/core/DialogContent";
+import DialogTitle from "@material-ui/core/DialogTitle";
+
 import WarningIcon from "@material-ui/icons/Warning";
 import DoneIcon from "@material-ui/icons/Done";
 import CancelIcon from "@material-ui/icons/Cancel";
@@ -39,6 +44,7 @@ import { dataTest, camelCase } from "../lib/attributes";
 import CampaignTextingHoursForm from "../components/CampaignTextingHoursForm";
 import { styles } from "./AdminCampaignStats";
 import AdminScriptImport from "../containers/AdminScriptImport";
+import Shortcuts from "../components/AssignmentTexter/Shortcuts";
 import { makeTree } from "../lib";
 
 const campaignInfoFragment = `
@@ -156,6 +162,8 @@ export class AdminCampaignEdit extends React.Component {
     this.state = {
       expandedSection,
       campaignFormValues: props.campaignData.campaign,
+      previewInteractionStep: null,
+      showPreviewDialog: false,
       startingCampaign: false,
       isPolling: false
     };
@@ -482,7 +490,22 @@ export class AdminCampaignEdit extends React.Component {
         extraProps: {
           customFields: this.props.campaignData.campaign.customFields,
           availableActions: this.props.organizationData.organization
-            .availableActions
+            .availableActions,
+          onShowPreviewDialog: interactionStep => {
+            this.setState({
+              previewInteractionStep: {
+                id: interactionStep.id,
+                question: {
+                  answerOptions: interactionStep.interactionSteps
+                    .filter(step => step.answerOption)
+                    .map(step => {
+                      return { value: step.answerOption };
+                    })
+                }
+              }
+            });
+            this.setState({ showPreviewDialog: true });
+          }
         }
       },
       {
@@ -1041,6 +1064,34 @@ export class AdminCampaignEdit extends React.Component {
             </Card>
           );
         })}
+        <Dialog maxWidth={"xl"} open={this.state.showPreviewDialog}>
+          <DialogTitle
+            style={{
+              marginRight: "20px"
+            }}
+          >
+            Preview Shortcuts
+          </DialogTitle>
+          <IconButton
+            aria-label="close"
+            onClick={() => this.setState({ showPreviewDialog: false })}
+            style={{
+              position: "absolute",
+              right: 0
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+          <DialogContent dividers>
+            <Shortcuts
+              campaign={this.props.campaignData.campaign}
+              currentInteractionStep={this.state.previewInteractionStep}
+              questionResponses={{}}
+              onCannedResponseChange={() => {}}
+              onQuestionResponseChange={() => {}}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
