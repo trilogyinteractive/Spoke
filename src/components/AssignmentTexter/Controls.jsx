@@ -4,6 +4,7 @@ import { StyleSheet, css } from "aphrodite";
 import Toolbar from "./Toolbar";
 import MessageList from "./MessageList";
 import CannedResponseMenu from "./CannedResponseMenu";
+import Shortcuts from "./Shortcuts";
 import Survey from "./Survey";
 import ScriptList from "./ScriptList";
 import Empty from "../Empty";
@@ -722,135 +723,6 @@ export class AssignmentTexterContactControls extends React.Component {
     );
   }
 
-  renderMessagingRowReplyShortcuts() {
-    const { assignment, campaign } = this.props;
-    const {
-      availableSteps,
-      questionResponses,
-      currentInteractionStep,
-      cannedResponseScript
-    } = this.state;
-
-    let joinedLength = 0;
-    let currentQuestion = null;
-    let currentQuestionAnswered = null;
-    let currentQuestionOptions = [];
-    // 1. Current Interaction Step Shortcuts
-    const currentStepHasAnswerOptions =
-      currentInteractionStep &&
-      currentInteractionStep.question &&
-      currentInteractionStep.question.answerOptions &&
-      currentInteractionStep.question.answerOptions.length;
-    if (currentStepHasAnswerOptions) {
-      currentQuestion = currentInteractionStep.question;
-      currentQuestionAnswered = questionResponses[currentInteractionStep.id];
-      const dupeTester = {};
-      const shortener = answerValue => {
-        // label is for one-word values or e.g. "Yes: ...."
-        const label = answerValue.match(/^(\w+)([^\s\w]|$)/);
-        return label ? label[1] : answerValue;
-      };
-      currentQuestionOptions = currentQuestion.answerOptions
-        .filter(answer => answer.value[0] != "-")
-        .map(answer => {
-          let label = shortener(answer.value);
-          if (label in dupeTester) {
-            dupeTester.FAIL = true;
-          } else {
-            dupeTester[label] = 1;
-          }
-          return {
-            answer,
-            label
-          };
-        });
-      joinedLength = currentQuestionOptions.map(o => o.label).join("__").length;
-      if (joinedLength > 36 || dupeTester.FAIL) {
-        // too many/long options or duplicates
-        currentQuestionOptions = [];
-        joinedLength = 0;
-      }
-    }
-    // 2. Canned Response Shortcuts
-    let shortCannedResponses = [];
-    // If there's a current interaction step but we aren't showing choices
-    // then don't show canned response shortcuts either or it can
-    // cause confusion.
-    if (!currentStepHasAnswerOptions || joinedLength !== 0) {
-      shortCannedResponses = campaign.cannedResponses
-        .filter(
-          // allow for "Wrong Number", prefixes of + or - can force add or remove
-          script =>
-            (script.title.length < 13 || script.title[0] === "+") &&
-            script.title[0] !== "-"
-        )
-        .filter(script => {
-          if (joinedLength + 1 + script.title.length < 80) {
-            joinedLength += 1 + script.title.length;
-            return true;
-          }
-        });
-    }
-
-    if (!joinedLength) {
-      return null;
-    }
-    // the only non-contextual state/props needed
-    // questionResponses, currentInteractionStep, cannedResponseScript
-    const isCurrentAnswer = opt =>
-      opt.answer.value === questionResponses[currentInteractionStep.id];
-    const isCurrentCannedResponse = script =>
-      cannedResponseScript && script.id === cannedResponseScript.id;
-    return (
-      <div>
-        {currentQuestionOptions.map(opt => (
-          <Button
-            key={`shortcutStep_${opt.answer.value}`}
-            onClick={evt => {
-              this.handleQuestionResponseChange({
-                interactionStep: currentInteractionStep,
-                questionResponseValue: isCurrentAnswer(opt)
-                  ? null
-                  : opt.answer.value,
-                nextScript:
-                  (!isCurrentAnswer(opt) &&
-                    opt.answer.nextInteractionStep &&
-                    opt.answer.nextInteractionStep.script) ||
-                  null
-              });
-            }}
-            style={{
-              marginRight: "9px",
-              backgroundColor: isCurrentAnswer(opt) ? "#727272" : "white",
-              color: isCurrentAnswer(opt) ? "white" : "#494949"
-            }}
-            variant="outlined"
-          >
-            {opt.label}
-          </Button>
-        ))}
-        {shortCannedResponses.map(script => (
-          <Button
-            key={`shortcutScript_${script.id}`}
-            onClick={evt => {
-              this.handleCannedResponseChange(script);
-            }}
-            style={{
-              marginLeft: "9px",
-              color: isCurrentCannedResponse(script) ? "white" : "#494949",
-              backgroundColor: isCurrentCannedResponse(script)
-                ? "#727272"
-                : "white"
-            }}
-            variant="outlined"
-          >
-            {script.title.replace(/^(\+|\-)/, "")}
-          </Button>
-        ))}
-      </div>
-    );
-  }
-
   renderMessagingRowReplyButtons(availableSteps, cannedResponses) {
     const disabled =
       !cannedResponses.length &&
@@ -948,7 +820,14 @@ export class AssignmentTexterContactControls extends React.Component {
               currentQuestionAnswered
             )}
           <div className={css(flexStyles.subSubAnswerButtonsColumns)}>
-            {this.renderMessagingRowReplyShortcuts()}
+            <Shortcuts
+              campaign={this.props.campaign}
+              cannedResponseScript={this.state.cannedResponseScript}
+              currentInteractionStep={this.state.currentInteractionStep}
+              questionResponses={this.state.questionResponses}
+              onCannedResponseChange={this.handleCannedResponseChange}
+              onQuestionResponseChange={this.handleQuestionResponseChange}
+            />
           </div>
         </div>
 
@@ -1078,8 +957,6 @@ export class AssignmentTexterContactControls extends React.Component {
 
 AssignmentTexterContactControls.propTypes = {
   // data
-  handleNavigateNext: PropTypes.func,
-  handleNavigatePrevious: PropTypes.func,
   contact: PropTypes.object,
   campaign: PropTypes.object,
   assignment: PropTypes.object,
@@ -1093,9 +970,11 @@ AssignmentTexterContactControls.propTypes = {
   messageStatusFilter: PropTypes.string,
   enabledSideboxes: PropTypes.arrayOf(PropTypes.object),
   review: PropTypes.string,
+  startingMessage: PropTypes.string,
 
   // parent config/callbacks
-  startingMessage: PropTypes.string,
+  handleNavigateNext: PropTypes.func,
+  handleNavigatePrevious: PropTypes.func,
   onMessageFormSubmit: PropTypes.func,
   onOptOut: PropTypes.func,
   onUpdateTags: PropTypes.func,
