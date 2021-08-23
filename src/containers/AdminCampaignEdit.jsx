@@ -1072,6 +1072,23 @@ export class AdminCampaignEdit extends React.Component {
           >
             Preview Shortcuts
           </DialogTitle>
+          <span
+            style={{
+              maxWidth: "800px",
+              paddingLeft: "24px",
+              paddingRight: "24px"
+            }}
+          >
+            With certain formatting, you can make shortcut buttons for scripts
+            and interactions. See{" "}
+            <a
+              href="https://moveonorg.github.io/Spoke/#/REFERENCE-shortcut-rules"
+              target="_blank"
+            >
+              shortcut reference documentation
+            </a>{" "}
+            for more information.
+          </span>
           <IconButton
             aria-label="close"
             onClick={() => this.setState({ showPreviewDialog: false })}

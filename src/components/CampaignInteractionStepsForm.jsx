@@ -438,7 +438,7 @@ export default class CampaignInteractionStepsForm extends React.Component {
                   }}
                   variant="outlined"
                 >
-                  Preview
+                  Preview Shortcut Buttons
                 </Button>
               </div>
             )}
