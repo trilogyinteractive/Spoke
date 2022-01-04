@@ -123,7 +123,10 @@ export async function onOrganizationUpdateSignal({
 
   if (updateData == "save") {
     // Save changes to organization features
+    console.log("Begin saving...");
+    console.log("organization.id:", organization.id);
     await accessRequired(user, organization.id, "OWNER", true);
+    console.log("Got required access");
     for (let i = 0; i < orgChanges.features.MULTI_TWILIO.length; i++) {
       orgChanges.features.MULTI_TWILIO[i].authToken = await convertSecret(
         "MULTI_TWILIO_AUTH_" + orgChanges.features.MULTI_TWILIO[i].accountSid,
@@ -131,6 +134,7 @@ export async function onOrganizationUpdateSignal({
         orgChanges.features.MULTI_TWILIO[i].authToken
       );
     }
+    console.log("Finished for loop");
     await cacheableData.organization.clear(organization.id);
     await r
       .knex("organization")
