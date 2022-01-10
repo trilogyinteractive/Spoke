@@ -136,12 +136,16 @@ export async function onOrganizationUpdateSignal({
     }
     console.log("Finished for loop");
     await cacheableData.organization.clear(organization.id);
+    console.log("Cleared cache");
     await r
       .knex("organization")
       .where("id", organization.id)
       .update(orgChanges);
+    console.log("Made updates");
     orgFeatures = JSON.stringify(getFeatures(organization).MULTI_TWILIO);
+    console.log("Saved orgFeatures");
     saveDisabled = true;
+    console.log("saveDisabled = true");
   } else {
     // Make changes to organization features
     if (!orgChanges) {
