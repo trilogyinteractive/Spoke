@@ -148,12 +148,14 @@ export async function onOrganizationUpdateSignal({
     console.log("saveDisabled = true");
   } else {
     // Make changes to organization features
+    console.log("orgChanges1:", orgChanges);
     if (!orgChanges) {
       orgChanges = {
         features: getFeatures(organization)
       };
       orgFeatures = JSON.stringify(getFeatures(organization).MULTI_TWILIO);
     }
+    console.log("orgChanges2:", orgChanges);
 
     orgChanges.features.MULTI_TWILIO = updateData.map(account => {
       const existingAccount = orgChanges.features.MULTI_TWILIO
