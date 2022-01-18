@@ -107,9 +107,11 @@ export async function getOrganizationData({ organization }) {
   const accounts = getFeatures(organization).MULTI_TWILIO;
 
   // Instantiate orgChanges and orgFeatures upon Settings page load
+  console.log("orgChanges1:", orgChanges);
   orgChanges = {
     features: getFeatures(organization)
   };
+  console.log("orgChanges2:", orgChanges);
   orgFeatures = JSON.stringify(accounts);
 
   return {
@@ -125,6 +127,7 @@ export async function onOrganizationUpdateSignal({
   user,
   updateData
 }) {
+  console.log("orgChanges3:", orgChanges);
   let saveDisabled = false;
 
   if (updateData == "save") {
