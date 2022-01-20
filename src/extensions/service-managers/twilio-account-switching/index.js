@@ -3,9 +3,6 @@ import { getFeatures } from "../../../server/api/lib/config";
 import { cacheableData, r } from "../../../server/models";
 import { getSecret, convertSecret } from "../../secret-manager";
 
-let orgChanges, orgFeatures;
-let version = 1;
-
 export const name = "twilio-account-switching";
 
 export const metadata = () => ({
@@ -106,14 +103,6 @@ export async function onCampaignUpdateSignal({
 export async function getOrganizationData({ organization }) {
   const accounts = getFeatures(organization).MULTI_TWILIO;
 
-  // Instantiate orgChanges and orgFeatures upon Settings page load
-  console.log("orgChanges1:", orgChanges);
-  orgChanges = {
-    features: getFeatures(organization)
-  };
-  console.log("orgChanges2:", orgChanges);
-  orgFeatures = JSON.stringify(accounts);
-
   return {
     data: {
       multiTwilio: accounts ? _obscureSensitiveInformation(accounts) : []
@@ -127,74 +116,44 @@ export async function onOrganizationUpdateSignal({
   user,
   updateData
 }) {
-  console.log("orgChanges3:", orgChanges);
-  let saveDisabled = false;
+  let orgChanges = {
+    features: getFeatures(organization)
+  };
+  const orgFeatures = getFeatures(organization).MULTI_TWILIO || [];
 
-  if (updateData == "save") {
-    // Save changes to organization features
-    console.log("Begin saving...");
-    console.log("organization.id:", organization.id);
-    await accessRequired(user, organization.id, "OWNER", true);
-    console.log("Got required access");
-    for (let i = 0; i < orgChanges.features.MULTI_TWILIO.length; i++) {
-      const curAccount = orgChanges.features.MULTI_TWILIO[i];
-      const foundAccount = orgFeatures
-        ? JSON.parse(orgFeatures).find(account => account.id == curAccount.id)
-        : null;
+  for (let i = 0; i < updateData.length; i++) {
+    const curAccount = updateData[i];
+    const foundAccount = orgFeatures
+      ? orgFeatures.find(account => account.id == curAccount.id)
+      : null;
 
-      // Only encrypt auth token if it's not already encrypted (new account or updated auth token)
-      if (!(foundAccount && curAccount.authToken == foundAccount.authToken)) {
-        curAccount.authToken = await convertSecret(
-          "MULTI_TWILIO_AUTH_" + curAccount.id,
-          organization,
-          curAccount.authToken
-        );
-      }
-    }
-    console.log("Finished for loop");
-    await cacheableData.organization.clear(organization.id);
-    console.log("Cleared cache");
-    await r
-      .knex("organization")
-      .where("id", organization.id)
-      .update(orgChanges);
-    console.log("Made updates");
-    orgFeatures = JSON.stringify(getFeatures(organization).MULTI_TWILIO);
-    console.log("Saved orgFeatures");
-    saveDisabled = true;
-    console.log("saveDisabled = true");
-  } else {
-    // Make changes to organization features
-    orgChanges.features.MULTI_TWILIO = updateData.map(account => {
-      const existingAccount = orgChanges.features.MULTI_TWILIO
-        ? orgChanges.features.MULTI_TWILIO.find(e => {
-            return e.id == account.id;
-          })
-        : null;
-
-      if (existingAccount && existingAccount.authToken != "<Encrypted>") {
-        if (account.authToken == "<Encrypted>") {
-          // Set to value of encrypted auth token if it hasn't changed
-          account.authToken = existingAccount.authToken;
-        }
-      }
-
-      return account;
-    });
-
-    if (orgFeatures == JSON.stringify(updateData)) {
-      saveDisabled = true;
+    // Only encrypt auth token if it's not already encrypted
+    if (curAccount.authToken == "<Encrypted>") {
+      // Didn't change auth token. Don't re-encrypt
+      curAccount.authToken = foundAccount.authToken;
+    } else {
+      // New account or updated auth token
+      curAccount.authToken = await convertSecret(
+        "MULTI_TWILIO_AUTH_" + curAccount.id,
+        organization,
+        curAccount.authToken
+      );
     }
   }
-  version++;
+  orgChanges.features.MULTI_TWILIO = updateData;
+
+  // Make DB changes
+  await cacheableData.organization.clear(organization.id);
+  await r
+    .knex("organization")
+    .where("id", organization.id)
+    .update(orgChanges);
 
   return {
     data: {
       multiTwilio: _obscureSensitiveInformation(
         orgChanges.features.MULTI_TWILIO
-      ),
-      saveDisabled: saveDisabled,
-      version: version
+      )
     },
     fullyConfigured: true
   };
