@@ -24,7 +24,7 @@ jobs:
       - name: yarn install, build, and test
         run: |
           yarn install
-          yarn run prod-build-server
+          OUTPUT_DIR=./build yarn run prod-build-server
           yarn run prod-build-client
 
       - name: Upload artifact for deployment job
