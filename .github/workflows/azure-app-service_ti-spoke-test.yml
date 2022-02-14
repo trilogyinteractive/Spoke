@@ -3,6 +3,10 @@
 
 name: Build and deploy Node.js app to Azure Web App - ti-spoke-test
 
+env:
+  ASSETS_DIR: ./build/clients/assets
+  ASSETS_MAP_FILE: assets.json
+
 on:
   push:
     branches:
